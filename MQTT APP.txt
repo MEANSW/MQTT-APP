@@ -1,0 +1,56 @@
+using System;
+using MQTTnet;
+using MQTTnet.Client;
+using MQTTnet.Client.Options;
+using MQTTnet.Extensions.ManagedClient;
+
+class Program
+{
+    static async Task Main(string[] args)
+    {
+        var factory = new MqttFactory();
+        var client = factory.CreateMqttClient();
+
+        // MQTT sunucusuna bağlanma işlemleri
+        var options = new MqttClientOptionsBuilder()
+            .WithTcpServer("mqtt_server_address", 1883)  // MQTT sunucusunun adresi ve portu
+            .Build();
+
+        await client.ConnectAsync(options);
+
+        // Mesaj gönderme işlemi
+        static async Task SendMessaage(string topic, string message)
+        {
+            var mqttMessage = new MqttApplicationMessageBuilder()
+                .WithTopic(topic)
+                .WithPayload(message)
+                .Build();
+
+            await client.PublishAsync(mqttMessage);
+        }
+
+        // Mesaj alma işlemi
+        client.UseApplicationMessageReceivedHandler(e =>
+        {
+            Console.WriteLine("Mesaj alındı. Konu: " + e.ApplicationMessage.Topic + " Mesaj: " + Encoding.UTF8.GetString(e.ApplicationMessage.Payload));
+        });
+
+        // İstemciye abone olma işlemi
+        static async Task Subscribe(string topic)
+        {
+            await client.SubscribeAsync(topic);
+        }
+
+        // Kullanıcıdan giriş alıp mesaj gönderme işlemi
+        while (true)
+        {
+            Console.Write("Mesaj göndermek için konuyu girin: ");
+            var topic = Console.ReadLine();
+
+            Console.Write("Göndermek istediğiniz mesajı yazın: ");
+            var message = Console.ReadLine();
+
+            await SendMessaage(topic, message);
+        }
+    }
+}
